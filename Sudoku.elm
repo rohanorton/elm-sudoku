@@ -88,7 +88,7 @@ createCell n =
     [ input
         [ type' "text"
         , maxlength 1
-        , value (toString n)
+        , value (String.fromChar n)
         ]
         []
     ]
