@@ -80,8 +80,10 @@ readSudoku =
 
 exampleBoard : Sudoku
 exampleBoard =
-  readSudoku
-    """36..712..
+  String.trim
+    """
+
+36..712..
 .5....18.
 ..92.47..
 ....13.28
@@ -89,13 +91,18 @@ exampleBoard =
 27.46....
 ..53.89..
 .83....6.
-..769..43"""
+..769..43
+
+"""
+    |> readSudoku
 
 
 correctBoard : Sudoku
 correctBoard =
-  readSudoku
-    """123456789
+  String.trim
+    """
+
+123456789
 456789123
 789123456
 234567891
@@ -103,13 +110,18 @@ correctBoard =
 891234567
 345678912
 678912345
-813245678"""
+813245678
+
+"""
+    |> readSudoku
 
 
 incorrectBoard : Sudoku
 incorrectBoard =
-  readSudoku
-    """123456789
+  String.trim
+    """
+
+123456789
 456789123
 789123456
 234567891
@@ -117,4 +129,7 @@ incorrectBoard =
 891234567
 345678912
 678912345
-813245671"""
+813245671
+
+"""
+    |> readSudoku
