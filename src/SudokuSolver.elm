@@ -1,6 +1,7 @@
 module SudokuSolver (..) where
 
 import String
+import List.Extra
 
 
 type Sudoku
@@ -8,7 +9,15 @@ type Sudoku
 
 
 type alias Row =
-  List (Cell)
+  List Cell
+
+
+type alias Column =
+  List Cell
+
+
+type alias Block =
+  List Cell
 
 
 type alias Cell =
@@ -24,6 +33,11 @@ rows sudoku =
   case sudoku of
     Sudoku rs ->
       rs
+
+
+columns : Sudoku -> List Column
+columns =
+  List.Extra.transpose << rows
 
 
 isFull : Sudoku -> Bool
@@ -46,11 +60,14 @@ isSomething x =
       True
 
 
-noDuplicates : List a -> Bool
+noDuplicates : List Cell -> Bool
 noDuplicates list =
   case list of
     [] ->
       True
+
+    Nothing :: xs ->
+      noDuplicates xs
 
     x :: xs ->
       not (List.member x xs) && noDuplicates xs
