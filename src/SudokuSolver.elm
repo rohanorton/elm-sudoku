@@ -40,6 +40,31 @@ columns =
   List.Extra.transpose << rows
 
 
+blocks : Sudoku -> List Block
+blocks =
+  let
+    pack =
+      partition << List.map partition
+
+    unpack =
+      List.map List.concat << List.concat
+
+    partition =
+      chunk 3
+  in
+    unpack << List.map List.Extra.transpose << pack << rows
+
+
+chunk : Int -> List a -> List (List a)
+chunk n xs =
+  case xs of
+    [] ->
+      []
+
+    xs ->
+      List.take n xs :: chunk n (List.drop n xs)
+
+
 isFull : Sudoku -> Bool
 isFull =
   List.all isFullRow << rows
