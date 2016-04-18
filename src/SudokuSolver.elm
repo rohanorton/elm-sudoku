@@ -72,11 +72,11 @@ isFull =
 
 isFullRow : List Cell -> Bool
 isFullRow =
-  List.all isSomething
+  List.all isJust
 
 
-isSomething : Maybe a -> Bool
-isSomething x =
+isJust : Maybe a -> Bool
+isJust x =
   case x of
     Nothing ->
       False
