@@ -98,6 +98,15 @@ noDuplicates list =
       not (List.member x xs) && noDuplicates xs
 
 
+{-| checks ALL rows, columns and blocks for duplicates
+-}
+isValid : Sudoku -> Bool
+isValid sudoku =
+  List.all noDuplicates (rows sudoku)
+    && List.all noDuplicates (columns sudoku)
+    && List.all noDuplicates (blocks sudoku)
+
+
 {-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
     is treated as a Nothing
 -}
