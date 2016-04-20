@@ -107,6 +107,26 @@ isValid sudoku =
     && List.all noDuplicates (blocks sudoku)
 
 
+getRowByPos : Sudoku -> Position -> Maybe Row
+getRowByPos sudoku =
+  List.Extra.getAt (rows sudoku) << fst
+
+
+getColumnByPos : Sudoku -> Position -> Maybe Column
+getColumnByPos sudoku =
+  List.Extra.getAt (columns sudoku) << snd
+
+
+getBlockByPos : Sudoku -> Position -> Maybe Block
+getBlockByPos sudoku =
+  List.Extra.getAt (blocks sudoku) << blockIndex
+
+
+blockIndex : Position -> Int
+blockIndex ( x, y ) =
+  x // 3 + (y // 3) * 3
+
+
 {-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
     is treated as a Nothing
 -}
