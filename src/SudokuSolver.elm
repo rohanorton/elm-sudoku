@@ -127,6 +127,33 @@ blockIndex ( x, y ) =
   x // 3 + (y // 3) * 3
 
 
+findEmptyCells : Sudoku -> List (List ( Position, List Int ))
+findEmptyCells sudoku =
+  let
+    getEmpty y =
+      List.indexedMap (\x _ -> ( ( x, y ), (getPossible sudoku ( x, y )) ))
+  in
+    List.indexedMap getEmpty (rows sudoku)
+
+
+getPossible : Sudoku -> Position -> List Int
+getPossible sudoku pos =
+  let
+    isPossible n =
+      List.all (noDuplicates << (::) (Just n)) [ col, row, block ]
+
+    col =
+      Maybe.withDefault [] (getColumnByPos sudoku pos)
+
+    row =
+      Maybe.withDefault [] (getRowByPos sudoku pos)
+
+    block =
+      Maybe.withDefault [] (getBlockByPos sudoku pos)
+  in
+    List.filter isPossible [1..9]
+
+
 {-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
     is treated as a Nothing
 -}
