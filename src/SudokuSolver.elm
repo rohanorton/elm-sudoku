@@ -127,13 +127,13 @@ blockIndex ( x, y ) =
   x // 3 + (y // 3) * 3
 
 
-findEmptyCells : Sudoku -> List (List ( Position, List Int ))
+findEmptyCells : Sudoku -> List ( Position, List Int )
 findEmptyCells sudoku =
   let
     getEmpty y =
       List.indexedMap (\x _ -> ( ( x, y ), (getPossible sudoku ( x, y )) ))
   in
-    List.indexedMap getEmpty (rows sudoku)
+    (List.concat << List.indexedMap getEmpty) (rows sudoku)
 
 
 getPossible : Sudoku -> Position -> List Int
