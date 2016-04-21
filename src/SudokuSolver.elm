@@ -85,6 +85,11 @@ isJust x =
       True
 
 
+isNothing : Maybe a -> Bool
+isNothing =
+  not << isJust
+
+
 noDuplicates : List Cell -> Bool
 noDuplicates list =
   case list of
@@ -122,25 +127,46 @@ getBlockByPos sudoku =
   List.Extra.getAt (blocks sudoku) << blockIndex
 
 
+getCell : Sudoku -> Position -> Cell
+getCell sudoku ( x, y ) =
+  let
+    row =
+      Maybe.withDefault [] (List.Extra.getAt (rows sudoku) y)
+  in
+    Maybe.withDefault Nothing (List.Extra.getAt (row) x)
+
+
 blockIndex : Position -> Int
 blockIndex ( x, y ) =
   x // 3 + (y // 3) * 3
 
 
-findEmptyCells : Sudoku -> List ( Position, List Int )
-findEmptyCells sudoku =
+type alias PossibilitiesMap =
+  { position : Position
+  , possibilities : List Int
+  }
+
+
+emptyCellPossibilities : Sudoku -> List PossibilitiesMap
+emptyCellPossibilities sudoku =
   let
     getEmpty y =
-      List.indexedMap (\x _ -> ( ( x, y ), (getPossible sudoku ( x, y )) ))
+      List.indexedMap (\x _ -> { position = ( x, y ), possibilities = (getPossible sudoku ( x, y )) })
   in
-    (List.concat << List.indexedMap getEmpty) (rows sudoku)
+    rows sudoku
+      |> List.indexedMap getEmpty
+      |> List.concat
+      |> List.filter (not << List.isEmpty << .possibilities)
 
 
 getPossible : Sudoku -> Position -> List Int
 getPossible sudoku pos =
   let
     isPossible n =
-      List.all (noDuplicates << (::) (Just n)) [ col, row, block ]
+      posEmpty && List.all (noDuplicates << (::) (Just n)) [ col, row, block ]
+
+    posEmpty =
+      isNothing (getCell sudoku pos)
 
     col =
       Maybe.withDefault [] (getColumnByPos sudoku pos)
