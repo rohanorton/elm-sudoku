@@ -180,6 +180,11 @@ getPossible sudoku pos =
     List.filter isPossible [1..9]
 
 
+sortCellPossibilities : List PossibilitiesMap -> List PossibilitiesMap
+sortCellPossibilities =
+  List.sortBy (List.length << .possibilities)
+
+
 {-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
     is treated as a Nothing
 -}
