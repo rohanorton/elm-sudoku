@@ -211,6 +211,29 @@ prune sudoku =
       sudoku
 
 
+isJust : Maybe a -> Bool
+isJust x =
+  case x of
+    Just a ->
+      True
+
+    Nothing ->
+      False
+
+
+isComplete : Sudoku -> Bool
+isComplete =
+  List.all isJust << Array.toList << .data
+
+
+valid : Sudoku -> Bool
+valid sudoku =
+  isComplete sudoku
+    && List.all noDuplicates (blocks sudoku)
+    && List.all noDuplicates (rows sudoku)
+    && List.all noDuplicates (cols sudoku)
+
+
 solve : Sudoku -> Sudoku
 solve =
   prune
