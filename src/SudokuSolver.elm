@@ -234,9 +234,43 @@ valid sudoku =
     && List.all noDuplicates (cols sudoku)
 
 
+backtrack : List PossibilitiesMap -> Sudoku -> Sudoku
+backtrack possMaps sudoku =
+  case possMaps of
+    [] ->
+      sudoku
+
+    possMap :: possMaps' ->
+      let
+        attempt colIndex rowIndex possibilities =
+          case possibilities of
+            [] ->
+              sudoku
+
+            possible :: possibilities' ->
+              let
+                sudoku' =
+                  Matrix.set colIndex rowIndex (Just possible) sudoku
+
+                result =
+                  solve sudoku'
+              in
+                if (valid result) then
+                  result
+                else
+                  attempt colIndex rowIndex possibilities'
+      in
+        attempt possMap.colIndex possMap.rowIndex possMap.possibilities
+
+
+possMapSudoku : Sudoku -> ( List PossibilitiesMap, Sudoku )
+possMapSudoku sudoku =
+  ( emptyCellPossibilities sudoku, sudoku )
+
+
 solve : Sudoku -> Sudoku
 solve =
-  prune
+  prune >> possMapSudoku >> uncurry backtrack
 
 
 
