@@ -83,6 +83,16 @@ emptyCellPossibilities sudoku =
       |> sortCellPossibilities
 
 
+cols : Sudoku -> List (List Cell)
+cols =
+  List.Extra.transpose << rows
+
+
+rows : Sudoku -> List (List Cell)
+rows =
+  chunk 9 << Array.toList << .data
+
+
 blocks : Sudoku -> List (List Cell)
 blocks =
   let
