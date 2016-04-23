@@ -1,58 +1,40 @@
 module SudokuSolver (..) where
 
-import String
+import Matrix exposing (Matrix)
+import Matrix.Extra
 import List.Extra
+import Array
+import String
 
 
-type Sudoku
-  = Sudoku (List Row)
-
-
-type alias Row =
-  List Cell
-
-
-type alias Column =
-  List Cell
-
-
-type alias Block =
-  List Cell
+type alias Sudoku =
+  Matrix Cell
 
 
 type alias Cell =
   Maybe Int
 
 
-type alias Position =
+type alias Location =
   ( Int, Int )
 
 
-rows : Sudoku -> List Row
-rows sudoku =
-  case sudoku of
-    Sudoku rs ->
-      rs
+type alias PossibilitiesMap =
+  { rowIndex : Int
+  , colIndex : Int
+  , possibilities : List Int
+  }
 
 
-columns : Sudoku -> List Column
-columns =
-  List.Extra.transpose << rows
-
-
-blocks : Sudoku -> List Block
-blocks =
+matrixToList : Matrix a -> List (List a)
+matrixToList matrix =
   let
-    pack =
-      partition << List.map partition
-
-    unpack =
-      List.map List.concat << List.concat
-
-    partition =
-      chunk 3
+    -- presume matrix is a square
+    ( size, _ ) =
+      matrix.size
   in
-    unpack << List.map List.Extra.transpose << pack << rows
+    Array.toList matrix.data
+      |> chunk size
 
 
 chunk : Int -> List a -> List (List a)
@@ -65,29 +47,74 @@ chunk n xs =
       List.take n xs :: chunk n (List.drop n xs)
 
 
-isFull : Sudoku -> Bool
-isFull =
-  List.all isFullRow << rows
+catMaybes : List (Maybe a) -> List a
+catMaybes xs =
+  case xs of
+    [] ->
+      []
+
+    Nothing :: xs' ->
+      catMaybes xs'
+
+    (Just x) :: xs' ->
+      x :: catMaybes xs'
 
 
-isFullRow : List Cell -> Bool
-isFullRow =
-  List.all isJust
+emptyCellPossibilities : Sudoku -> List PossibilitiesMap
+emptyCellPossibilities sudoku =
+  let
+    toPossibles colIndex rowIndex cell =
+      case cell of
+        Nothing ->
+          Just
+            { rowIndex = rowIndex
+            , colIndex = colIndex
+            , possibilities = getPossible sudoku rowIndex colIndex
+            }
+
+        -- if there's already something in the list, no need to work out possibilities
+        Just a ->
+          Nothing
+  in
+    Matrix.indexedMap toPossibles sudoku
+      |> .data
+      |> Array.toList
+      |> catMaybes
+      |> sortCellPossibilities
 
 
-isJust : Maybe a -> Bool
-isJust x =
-  case x of
-    Nothing ->
-      False
+blocks : Sudoku -> List (List Cell)
+blocks =
+  let
+    pack =
+      partition << List.map partition
 
-    Just a ->
-      True
+    unpack =
+      List.map List.concat << List.concat
+
+    partition =
+      chunk 3
+  in
+    unpack << List.map List.Extra.transpose << pack << matrixToList
 
 
-isNothing : Maybe a -> Bool
-isNothing =
-  not << isJust
+blockIndex : Int -> Int -> Int
+blockIndex colIndex rowIndex =
+  colIndex // 3 + (rowIndex // 3) * 3
+
+
+getBlock : Int -> Sudoku -> List Cell
+getBlock index sudoku =
+  blocks sudoku
+    |> flip List.Extra.getAt index
+    |> Maybe.withDefault []
+
+
+getRow : Int -> Sudoku -> List Cell
+getRow index sudoku =
+  Matrix.getRow index sudoku
+    |> Maybe.withDefault Array.empty
+    |> Array.toList
 
 
 noDuplicates : List Cell -> Bool
@@ -103,79 +130,27 @@ noDuplicates list =
       not (List.member x xs) && noDuplicates xs
 
 
-{-| checks ALL rows, columns and blocks for duplicates
--}
-isValid : Sudoku -> Bool
-isValid sudoku =
-  List.all noDuplicates (rows sudoku)
-    && List.all noDuplicates (columns sudoku)
-    && List.all noDuplicates (blocks sudoku)
+getCol : Int -> Sudoku -> List Cell
+getCol index sudoku =
+  Matrix.getColumn index sudoku
+    |> Maybe.withDefault Array.empty
+    |> Array.toList
 
 
-getRowByPos : Sudoku -> Position -> Maybe Row
-getRowByPos sudoku =
-  List.Extra.getAt (rows sudoku) << fst
-
-
-getColumnByPos : Sudoku -> Position -> Maybe Column
-getColumnByPos sudoku =
-  List.Extra.getAt (columns sudoku) << snd
-
-
-getBlockByPos : Sudoku -> Position -> Maybe Block
-getBlockByPos sudoku =
-  List.Extra.getAt (blocks sudoku) << blockIndex
-
-
-getCell : Sudoku -> Position -> Cell
-getCell sudoku ( x, y ) =
+getPossible : Sudoku -> Int -> Int -> List Int
+getPossible sudoku rowIndex colIndex =
   let
+    isPossible int =
+      List.all (noDuplicates << (::) (Just int)) [ row, col, block ]
+
     row =
-      Maybe.withDefault [] (List.Extra.getAt (rows sudoku) y)
-  in
-    Maybe.withDefault Nothing (List.Extra.getAt (row) x)
-
-
-blockIndex : Position -> Int
-blockIndex ( x, y ) =
-  x // 3 + (y // 3) * 3
-
-
-type alias PossibilitiesMap =
-  { position : Position
-  , possibilities : List Int
-  }
-
-
-emptyCellPossibilities : Sudoku -> List PossibilitiesMap
-emptyCellPossibilities sudoku =
-  let
-    getEmpty y =
-      List.indexedMap (\x _ -> { position = ( x, y ), possibilities = (getPossible sudoku ( x, y )) })
-  in
-    rows sudoku
-      |> List.indexedMap getEmpty
-      |> List.concat
-      |> List.filter (not << List.isEmpty << .possibilities)
-
-
-getPossible : Sudoku -> Position -> List Int
-getPossible sudoku pos =
-  let
-    isPossible n =
-      posEmpty && List.all (noDuplicates << (::) (Just n)) [ col, row, block ]
-
-    posEmpty =
-      isNothing (getCell sudoku pos)
+      getRow rowIndex sudoku
 
     col =
-      Maybe.withDefault [] (getColumnByPos sudoku pos)
-
-    row =
-      Maybe.withDefault [] (getRowByPos sudoku pos)
+      getCol colIndex sudoku
 
     block =
-      Maybe.withDefault [] (getBlockByPos sudoku pos)
+      getBlock (blockIndex colIndex rowIndex) sudoku
   in
     List.filter isPossible [1..9]
 
@@ -185,22 +160,50 @@ sortCellPossibilities =
   List.sortBy (List.length << .possibilities)
 
 
-{-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
-    is treated as a Nothing
--}
-readCell : String -> Cell
-readCell =
-  Result.toMaybe << String.toInt
+fillInSingles : Sudoku -> List PossibilitiesMap -> Sudoku
+fillInSingles sudoku possMap =
+  case possMap of
+    [] ->
+      sudoku
+
+    x :: xs ->
+      case x.possibilities of
+        int :: [] ->
+          Matrix.set x.colIndex x.rowIndex (Just int) sudoku
+            |> flip fillInSingles xs
+
+        _ ->
+          fillInSingles sudoku xs
 
 
-readRow : String -> Row
-readRow =
-  List.map readCell << String.split ""
+hasPrunable : List PossibilitiesMap -> Bool
+hasPrunable possMap =
+  case possMap of
+    [] ->
+      False
+
+    x :: xs ->
+      x.possibilities
+        |> List.length
+        |> (==) 1
 
 
-readSudoku : String -> Sudoku
-readSudoku =
-  Sudoku << List.map readRow << String.split "\n"
+prune : Sudoku -> Sudoku
+prune sudoku =
+  let
+    possMap =
+      emptyCellPossibilities sudoku
+  in
+    if (hasPrunable possMap) then
+      fillInSingles sudoku possMap
+        |> prune
+    else
+      sudoku
+
+
+solve : Sudoku -> Sudoku
+solve =
+  prune
 
 
 
@@ -211,7 +214,6 @@ exampleBoard : Sudoku
 exampleBoard =
   String.trim
     """
-
 36..712..
 .5....18.
 ..92.47..
@@ -221,7 +223,6 @@ exampleBoard =
 ..53.89..
 .83....6.
 ..769..43
-
 """
     |> readSudoku
 
@@ -230,7 +231,6 @@ correctBoard : Sudoku
 correctBoard =
   String.trim
     """
-
 123456789
 456789123
 789123456
@@ -240,7 +240,6 @@ correctBoard =
 345678912
 678912345
 813245678
-
 """
     |> readSudoku
 
@@ -249,7 +248,6 @@ incorrectBoard : Sudoku
 incorrectBoard =
   String.trim
     """
-
 123456789
 456789123
 789123456
@@ -259,6 +257,5 @@ incorrectBoard =
 345678912
 678912345
 813245671
-
 """
     |> readSudoku
