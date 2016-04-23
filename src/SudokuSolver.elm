@@ -207,6 +207,30 @@ solve =
 
 
 
+--- converting strings
+
+
+{-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
+    is treated as a Nothing
+-}
+readCell : String -> Cell
+readCell =
+  Result.toMaybe << String.toInt
+
+
+readRow : String -> List Cell
+readRow =
+  List.map readCell << String.split ""
+
+
+readSudoku : String -> Sudoku
+readSudoku str =
+  String.split "\n" str
+    |> List.map readRow
+    |> Matrix.fromList
+    |> Maybe.withDefault Matrix.empty
+
+
 --------- For Testing --------
 
 
