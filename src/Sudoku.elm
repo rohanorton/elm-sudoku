@@ -1,38 +1,26 @@
 module Sudoku (..) where
 
 import Html exposing (..)
+import Html.Events exposing (onClick)
 import Html.Attributes exposing (..)
 import String
-
-
---------------------------------------------------
---------------------------------------------------
--- Rules of Sudoku
--- 1. 9×9 board, divided into 9 subsections
--- 2. Each square can have a number from 1 to 9
--- 3. Numbers must be unique per row
--- 4. Numbers must be unique per column
--- 5. Numbers must be unique per section
---------------------------------------------------
---------------------------------------------------
+import Sudoku.Types exposing (..)
+import Sudoku.Solver
+import Sudoku.Utils
 
 
 type alias Model =
-  { board : Board }
+  { sudoku : Sudoku }
 
 
 init : Model
 init =
-  { board = exampleBoard }
-
-
-type alias Board =
-  List String
+  { sudoku = exampleBoard }
 
 
 {-| For the moment use a sample board
 -}
-exampleBoard : Board
+exampleBoard : Sudoku
 exampleBoard =
   [ "   26 7 1"
   , "68  7  9 "
@@ -44,21 +32,22 @@ exampleBoard =
   , " 4  5  36"
   , "7 3 18   "
   ]
+    |> Sudoku.Utils.readSudoku
 
 
 
 -- Update
 
 
-{-| No functionality, just placeholder
--}
 type Action
-  = NoOp
+  = Solve
 
 
 update : Action -> Model -> Model
 update action model =
-  model
+  case action of
+    Solve ->
+      { model | sudoku = Sudoku.Solver.solve model.sudoku }
 
 
 
@@ -67,9 +56,17 @@ update action model =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  table
-    []
-    (List.map (tr [ class "row" ] << buildRow) model.board)
+  let
+    rowStrings =
+      Sudoku.Utils.display model.sudoku
+  in
+    div
+      []
+      [ table
+          []
+          (List.map (tr [ class "row" ] << buildRow) rowStrings)
+      , button [ onClick address Solve ] [ text "Solve" ]
+      ]
 
 
 buildRow : String -> List Html
