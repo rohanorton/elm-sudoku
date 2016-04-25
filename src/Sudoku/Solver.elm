@@ -1,50 +1,10 @@
-module SudokuSolver (..) where
+module Sudoku.Solver (..) where
 
+import Sudoku.Types exposing (..)
+import Sudoku.Utils exposing (..)
 import Matrix exposing (Matrix)
-import Matrix.Extra
 import List.Extra
 import Array
-import String
-
-
-type alias Sudoku =
-  Matrix Cell
-
-
-type alias Cell =
-  Maybe Int
-
-
-type alias Location =
-  ( Int, Int )
-
-
-type alias PossibilitiesMap =
-  { rowIndex : Int
-  , colIndex : Int
-  , possibilities : List Int
-  }
-
-
-matrixToList : Matrix a -> List (List a)
-matrixToList matrix =
-  let
-    -- presume matrix is a square
-    ( size, _ ) =
-      matrix.size
-  in
-    Array.toList matrix.data
-      |> chunk size
-
-
-chunk : Int -> List a -> List (List a)
-chunk n xs =
-  case xs of
-    [] ->
-      []
-
-    xs ->
-      List.take n xs :: chunk n (List.drop n xs)
 
 
 catMaybes : List (Maybe a) -> List a
@@ -271,82 +231,3 @@ possMapSudoku sudoku =
 solve : Sudoku -> Sudoku
 solve =
   prune >> possMapSudoku >> uncurry backtrack
-
-
-
---- converting strings
-
-
-{-| anything that fails to be parsed to int (i.e. ".", "x", or " ")
-    is treated as a Nothing
--}
-readCell : String -> Cell
-readCell =
-  Result.toMaybe << String.toInt
-
-
-readRow : String -> List Cell
-readRow =
-  List.map readCell << String.split ""
-
-
-readSudoku : String -> Sudoku
-readSudoku str =
-  String.split "\n" str
-    |> List.map readRow
-    |> Matrix.fromList
-    |> Maybe.withDefault Matrix.empty
-
-
---------- For Testing --------
-
-
-exampleBoard : Sudoku
-exampleBoard =
-  String.trim
-    """
-36..712..
-.5....18.
-..92.47..
-....13.28
-4..5.2..9
-27.46....
-..53.89..
-.83....6.
-..769..43
-"""
-    |> readSudoku
-
-
-correctBoard : Sudoku
-correctBoard =
-  String.trim
-    """
-123456789
-456789123
-789123456
-234567891
-567891234
-891234567
-345678912
-678912345
-913245678
-"""
-    |> readSudoku
-
-
-incorrectBoard : Sudoku
-incorrectBoard =
-  String.trim
-    """
-123456789
-456789123
-789123456
-234567891
-567891234
-891234567
-345678912
-678912345
-813245671
-"""
-    |> readSudoku
