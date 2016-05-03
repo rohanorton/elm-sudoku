@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "start": "npm run styles:watch & npm run build:watch & npm run serve",
+    "serve": "browser-sync start --server --files 'assets/**/*'",
+    "build": "elm make src/Main.elm --output assets/js/elm.js",
+    "build:watch": "npm run build && onchange src/* src/**/* -- npm run build",
+    "styles": "node-sass --include-path scss scss/main.scss assets/css/main.css",
+    "styles:watch": "npm run styles && onchange scss/* -- npm run styles"
+  },
+  "dependencies": {
+    "browser-sync": "^2.12.5",
+    "node-sass": "^3.7.0",
+    "onchange": "^2.4.0"
+  }
+}
