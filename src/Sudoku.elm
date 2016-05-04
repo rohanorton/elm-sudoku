@@ -56,17 +56,36 @@ update action model =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
+  div
+    []
+    [ sudokuView model.sudoku
+    , button [ onClick address Solve ] [ text "Solve" ]
+    ]
+
+
+sudokuView : Sudoku -> Html
+sudokuView sudoku =
   let
+    partitionedTable =
+      colGroups ++ List.map (\row -> tbody [] row) (Sudoku.Utils.chunk 3 simpleTable)
+
+    simpleTable =
+      List.map (tr [ class "row" ] << buildRow) rowStrings
+
     rowStrings =
-      Sudoku.Utils.display model.sudoku
+      Sudoku.Utils.display sudoku
   in
-    div
-      []
-      [ table
-          []
-          (List.map (tr [ class "row" ] << buildRow) rowStrings)
-      , button [ onClick address Solve ] [ text "Solve" ]
-      ]
+    table [] partitionedTable
+
+
+colGroups : List Html
+colGroups =
+  List.repeat 3 colGroup
+
+
+colGroup : Html
+colGroup =
+  colgroup [] (List.repeat 3 (col [] []))
 
 
 buildRow : String -> List Html

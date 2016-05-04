@@ -4,6 +4,10 @@ table {
     font-family: Calibri, sans-serif;
 }
 
+colgroup, tbody {
+    border: solid medium;
+}
+
 td {
     border: solid thin;
     height: 3em;
