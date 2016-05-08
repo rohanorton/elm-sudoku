@@ -7,15 +7,18 @@ import String
 import Sudoku.Types exposing (..)
 import Sudoku.Solver
 import Sudoku.Utils
+import Effects exposing (Effects)
 
 
 type alias Model =
   { sudoku : Sudoku }
 
 
-init : Model
+init : ( Model, Effects Action )
 init =
-  { sudoku = exampleBoard }
+  ( { sudoku = exampleBoard }
+  , Effects.none
+  )
 
 
 {-| For the moment use a sample board
@@ -43,11 +46,13 @@ type Action
   = Solve
 
 
-update : Action -> Model -> Model
+update : Action -> Model -> ( Model, Effects Action )
 update action model =
   case action of
     Solve ->
-      { model | sudoku = Sudoku.Solver.solve model.sudoku }
+      ( { model | sudoku = Sudoku.Solver.solve model.sudoku }
+      , Effects.none
+      )
 
 
 

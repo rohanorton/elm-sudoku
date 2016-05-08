@@ -1,14 +1,19 @@
 module Main (..) where
 
-import StartApp.Simple exposing (start)
+import StartApp exposing (start)
 import Sudoku exposing (init, view, update)
 import Html exposing (Html)
 
 
-main : Signal.Signal Html
-main =
+app =
   start
-    { model = init
+    { init = init
     , view = view
     , update = update
+    , inputs = []
     }
+
+
+main : Signal.Signal Html
+main =
+  app.html
