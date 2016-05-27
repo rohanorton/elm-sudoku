@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "browser-sync": "^2.12.5",
+    "elm": "^0.17.0",
     "node-sass": "^3.7.0",
     "onchange": "^2.4.0"
   }
