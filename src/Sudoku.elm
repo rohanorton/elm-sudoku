@@ -1,115 +1,66 @@
-module Sudoku (..) where
+module Sudoku exposing (..)
 
 import Html exposing (..)
-import Html.Events exposing (onClick)
-import Html.Attributes exposing (..)
-import String
-import Sudoku.Types exposing (..)
-import Sudoku.Solver
-import Sudoku.Utils
-import Effects exposing (Effects)
+import Matrix exposing (Matrix)
+
+
+-- Model
 
 
 type alias Model =
-  { sudoku : Sudoku }
+    { sudoku : Sudoku
+    }
 
 
-init : ( Model, Effects Action )
+type alias Sudoku =
+    Matrix Cell
+
+
+type Cell
+    = Defined Int
+    | Guessed Int
+    | Empty
+
+
+init : ( Model, Cmd Msg )
 init =
-  ( { sudoku = exampleBoard }
-  , Effects.none
-  )
-
-
-{-| For the moment use a sample board
--}
-exampleBoard : Sudoku
-exampleBoard =
-  [ "   26 7 1"
-  , "68  7  9 "
-  , "19   45  "
-  , "82 1   4 "
-  , "  46 29  "
-  , " 5   3 28"
-  , "  93   74"
-  , " 4  5  36"
-  , "7 3 18   "
-  ]
-    |> Sudoku.Utils.readSudoku
+    { sudoku = Matrix.empty
+    }
+        ! []
 
 
 
 -- Update
 
 
-type Action
-  = Solve
+type Msg
+    = New
+    | Solve
 
 
-update : Action -> Model -> ( Model, Effects Action )
-update action model =
-  case action of
-    Solve ->
-      ( { model | sudoku = Sudoku.Solver.solve model.sudoku }
-      , Effects.none
-      )
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        New ->
+            model ! []
+
+        Solve ->
+            model ! []
+
+
+
+-- Subscriptions
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 
 -- View
 
 
-view : Signal.Address Action -> Model -> Html
-view address model =
-  div
-    []
-    [ sudokuView model.sudoku
-    , button [ onClick address Solve ] [ text "Solve" ]
-    ]
-
-
-sudokuView : Sudoku -> Html
-sudokuView sudoku =
-  let
-    partitionedTable =
-      colGroups ++ List.map (\row -> tbody [] row) (Sudoku.Utils.chunk 3 simpleTable)
-
-    simpleTable =
-      List.map (tr [ class "row" ] << buildRow) rowStrings
-
-    rowStrings =
-      Sudoku.Utils.display sudoku
-  in
-    table [] partitionedTable
-
-
-colGroups : List Html
-colGroups =
-  List.repeat 3 colGroup
-
-
-colGroup : Html
-colGroup =
-  colgroup [] (List.repeat 3 (col [] []))
-
-
-buildRow : String -> List Html
-buildRow row =
-  let
-    cells =
-      String.toList row
-  in
-    List.map createCell cells
-
-
-createCell : Char -> Html
-createCell n =
-  td
-    [ class "cell" ]
-    [ input
-        [ type' "text"
-        , maxlength 1
-        , value (String.fromChar n)
-        ]
-        []
-    ]
+view : Model -> Html Msg
+view model =
+    text "rewriting..."

@@ -1,19 +1,14 @@
-module Main (..) where
+module Main exposing (..)
 
-import StartApp exposing (start)
-import Sudoku exposing (init, view, update)
-import Html exposing (Html)
-
-
-app =
-  start
-    { init = init
-    , view = view
-    , update = update
-    , inputs = []
-    }
+import Html.App as Html
+import Sudoku exposing (init, view, update, subscriptions)
 
 
-main : Signal.Signal Html
+main : Program Never
 main =
-  app.html
+    Html.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
