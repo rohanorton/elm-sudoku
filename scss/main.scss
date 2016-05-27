@@ -1,7 +1,14 @@
+.container {
+    padding: 30px;
+    text-align: center;
+}
+
 table {
     margin: auto;
+    padding: 0;
     border-collapse: collapse;
     font-family: Calibri, sans-serif;
+    font-weight: lighter;
 }
 
 colgroup, tbody {
@@ -15,14 +22,19 @@ td {
     padding: 0;
 }
 
+.defined {
+    background-color: #EFEFEF;
+}
+
 input[type="text"] {
     border: none;
     text-align: center;
     border-radius: none;
-    font-size: 2em;
+    font-size: 2rem;
     width: 100%;
     box-shadow: none;
     margin: 0;
     display: block;
     outline: none;
+    background-color: transparent;
 }
