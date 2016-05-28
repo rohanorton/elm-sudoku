@@ -7,6 +7,7 @@ import Matrix exposing (Matrix)
 import Json.Decode as Json
 import Array
 import List
+import List.Extra
 import String
 
 
@@ -85,7 +86,7 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ sudoku } as model) =
-    case Debug.log "" msg of
+    case msg of
         New ->
             model ! []
 
@@ -103,10 +104,10 @@ update msg ({ sudoku } as model) =
 guess : Int -> Int -> String -> Sudoku -> Sudoku
 guess x y str sudoku =
     let
-        val =
+        cell =
             check x y str sudoku
     in
-        Matrix.set x y val sudoku
+        Matrix.set x y cell sudoku
 
 
 check : Int -> Int -> String -> Sudoku -> Cell
@@ -119,8 +120,106 @@ check x y str sudoku =
     in
         if int == 0 then
             Empty
-        else
+        else if isPossible y x sudoku int then
             GoodGuess int
+        else
+            BadGuess int
+
+
+cols : Sudoku -> List (List Cell)
+cols =
+    List.Extra.transpose << rows
+
+
+rows : Sudoku -> List (List Cell)
+rows =
+    chunk 9 << Array.toList << .data
+
+
+blocks : Sudoku -> List (List Cell)
+blocks =
+    let
+        pack =
+            partition << List.map partition
+
+        unpack =
+            List.map List.concat << List.concat
+
+        partition =
+            chunk 3
+    in
+        unpack << List.map List.Extra.transpose << pack << matrixToList
+
+
+getCol : Int -> Sudoku -> List Cell
+getCol index sudoku =
+    Matrix.getColumn index sudoku
+        |> Maybe.withDefault Array.empty
+        |> Array.toList
+
+
+blockIndex : Int -> Int -> Int
+blockIndex colIndex rowIndex =
+    colIndex // 3 + (rowIndex // 3) * 3
+
+
+getBlock : Int -> Sudoku -> List Cell
+getBlock index sudoku =
+    blocks sudoku
+        |> List.Extra.getAt index
+        |> Maybe.withDefault []
+
+
+getRow : Int -> Sudoku -> List Cell
+getRow index sudoku =
+    Matrix.getRow index sudoku
+        |> Maybe.withDefault Array.empty
+        |> Array.toList
+
+
+cellsToInts : List Cell -> List Int
+cellsToInts =
+    List.foldl
+        (\cell memo ->
+            case cell of
+                Empty ->
+                    memo
+
+                Defined n ->
+                    n :: memo
+
+                GoodGuess n ->
+                    n :: memo
+
+                BadGuess n ->
+                    n :: memo
+        )
+        []
+
+
+noDuplicates : List Int -> Bool
+noDuplicates list =
+    case list of
+        [] ->
+            True
+
+        x :: xs ->
+            not (List.member x xs) && noDuplicates xs
+
+
+isPossible : Int -> Int -> Sudoku -> Int -> Bool
+isPossible rowIndex colIndex sudoku int =
+    let
+        row =
+            getRow rowIndex sudoku
+
+        col =
+            getCol colIndex sudoku
+
+        block =
+            getBlock (blockIndex colIndex rowIndex) sudoku
+    in
+        List.all (noDuplicates << (::) int) <| List.map cellsToInts [ row, col, block ]
 
 
 
