@@ -37,6 +37,22 @@ init =
         ! []
 
 
+type RowIndex
+    = RowIndex Int
+
+
+type ColIndex
+    = ColIndex Int
+
+
+type BlockIndex
+    = BlockIndex Int
+
+
+
+-- Read
+
+
 {-| For the moment use a sample board
 -}
 exampleBoard : Sudoku
@@ -81,7 +97,7 @@ readCell str =
 type Msg
     = New
     | Solve
-    | SetSquare Int Int String
+    | SetSquare ColIndex RowIndex String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,25 +109,55 @@ update msg ({ sudoku } as model) =
         Solve ->
             model ! []
 
-        SetSquare x y str ->
+        SetSquare colIndex rowIndex str ->
             let
                 sudoku' =
-                    guess x y str sudoku
+                    guess colIndex rowIndex str sudoku
             in
                 { model | sudoku = sudoku' } ! []
 
 
-guess : Int -> Int -> String -> Sudoku -> Sudoku
-guess x y str sudoku =
+
+-- Sudoku Utils
+
+
+guess : ColIndex -> RowIndex -> String -> Sudoku -> Sudoku
+guess colIndex rowIndex str sudoku =
     let
         cell =
-            check x y str sudoku
+            getCell colIndex rowIndex str sudoku
     in
-        Matrix.set x y cell sudoku
+        sudokuSet colIndex rowIndex cell sudoku
 
 
-check : Int -> Int -> String -> Sudoku -> Cell
-check x y str sudoku =
+matrixToList : Matrix a -> List (List a)
+matrixToList matrix =
+    let
+        -- presume matrix is a square
+        ( size, _ ) =
+            matrix.size
+    in
+        Array.toList matrix.data
+            |> chunk size
+
+
+chunk : Int -> List a -> List (List a)
+chunk n xs =
+    case xs of
+        [] ->
+            []
+
+        xs ->
+            List.take n xs :: chunk n (List.drop n xs)
+
+
+sudokuSet : ColIndex -> RowIndex -> Cell -> Sudoku -> Sudoku
+sudokuSet (ColIndex y) (RowIndex x) cell sudoku =
+    Matrix.set y x cell sudoku
+
+
+getCell : ColIndex -> RowIndex -> String -> Sudoku -> Cell
+getCell colIndex rowIndex str sudoku =
     let
         int =
             String.toInt str
@@ -120,7 +166,7 @@ check x y str sudoku =
     in
         if int == 0 then
             Empty
-        else if isPossible y x sudoku int then
+        else if isPossible colIndex rowIndex sudoku int then
             GoodGuess int
         else
             BadGuess int
@@ -136,43 +182,48 @@ rows =
     chunk 9 << Array.toList << .data
 
 
+unpack : List (List (List (List a))) -> List (List a)
+unpack =
+    List.map List.concat << List.concat
+
+
+pack : List (List a) -> List (List (List (List a)))
+pack =
+    partition << List.map partition
+
+
+partition : List a -> List (List a)
+partition =
+    chunk 3
+
+
 blocks : Sudoku -> List (List Cell)
 blocks =
-    let
-        pack =
-            partition << List.map partition
-
-        unpack =
-            List.map List.concat << List.concat
-
-        partition =
-            chunk 3
-    in
-        unpack << List.map List.Extra.transpose << pack << matrixToList
+    unpack << List.map List.Extra.transpose << pack << matrixToList
 
 
-getCol : Int -> Sudoku -> List Cell
-getCol index sudoku =
-    Matrix.getColumn index sudoku
+getCol : ColIndex -> Sudoku -> List Cell
+getCol (ColIndex i) sudoku =
+    Matrix.getColumn i sudoku
         |> Maybe.withDefault Array.empty
         |> Array.toList
 
 
-blockIndex : Int -> Int -> Int
-blockIndex colIndex rowIndex =
-    colIndex // 3 + (rowIndex // 3) * 3
+blockIndex : ColIndex -> RowIndex -> BlockIndex
+blockIndex (ColIndex c) (RowIndex r) =
+    BlockIndex (c // 3 + (r // 3) * 3)
 
 
-getBlock : Int -> Sudoku -> List Cell
-getBlock index sudoku =
+getBlock : BlockIndex -> Sudoku -> List Cell
+getBlock (BlockIndex i) sudoku =
     blocks sudoku
-        |> List.Extra.getAt index
+        |> List.Extra.getAt i
         |> Maybe.withDefault []
 
 
-getRow : Int -> Sudoku -> List Cell
-getRow index sudoku =
-    Matrix.getRow index sudoku
+getRow : RowIndex -> Sudoku -> List Cell
+getRow (RowIndex i) sudoku =
+    Matrix.getRow i sudoku
         |> Maybe.withDefault Array.empty
         |> Array.toList
 
@@ -207,19 +258,20 @@ noDuplicates list =
             not (List.member x xs) && noDuplicates xs
 
 
-isPossible : Int -> Int -> Sudoku -> Int -> Bool
-isPossible rowIndex colIndex sudoku int =
+isPossible : ColIndex -> RowIndex -> Sudoku -> Int -> Bool
+isPossible colIndex rowIndex sudoku int =
     let
-        row =
-            getRow rowIndex sudoku
-
         col =
             getCol colIndex sudoku
+
+        row =
+            getRow rowIndex sudoku
 
         block =
             getBlock (blockIndex colIndex rowIndex) sudoku
     in
-        List.all (noDuplicates << (::) int) <| List.map cellsToInts [ row, col, block ]
+        List.map cellsToInts [ row, col, block ]
+            |> List.all (noDuplicates << (::) int)
 
 
 
@@ -276,16 +328,23 @@ rowView y row =
 
 cellView : Int -> Int -> Cell -> Html Msg
 cellView y x cell =
-    td [ class <| "cell " ++ cellClass cell ]
-        [ input
-            [ type' "text"
-            , maxlength 1
-            , value <| cellContentString cell
-            , readonly <| isReadOnly cell
-            , on "input" (Json.map (SetSquare x y) targetValue)
+    let
+        colIndex =
+            ColIndex x
+
+        rowIndex =
+            RowIndex y
+    in
+        td [ class <| "cell " ++ cellClass cell ]
+            [ input
+                [ type' "text"
+                , maxlength 1
+                , value <| cellContentString cell
+                , readonly <| isReadOnly cell
+                , on "input" (Json.map (SetSquare colIndex rowIndex) targetValue)
+                ]
+                []
             ]
-            []
-        ]
 
 
 cellClass : Cell -> String
@@ -328,24 +387,3 @@ cellContentString cell =
 
         BadGuess n ->
             toString n
-
-
-matrixToList : Matrix a -> List (List a)
-matrixToList matrix =
-    let
-        -- presume matrix is a square
-        ( size, _ ) =
-            matrix.size
-    in
-        Array.toList matrix.data
-            |> chunk size
-
-
-chunk : Int -> List a -> List (List a)
-chunk n xs =
-    case xs of
-        [] ->
-            []
-
-        xs ->
-            List.take n xs :: chunk n (List.drop n xs)
