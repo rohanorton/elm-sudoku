@@ -49,6 +49,13 @@ type BlockIndex
     = BlockIndex Int
 
 
+type alias PossibilitiesMap =
+    { rowIndex : RowIndex
+    , colIndex : ColIndex
+    , possibilities : List Int
+    }
+
+
 
 -- Read
 
@@ -107,7 +114,11 @@ update msg ({ sudoku } as model) =
             model ! []
 
         Solve ->
-            model ! []
+            let
+                sudoku' =
+                    solve sudoku
+            in
+                { model | sudoku = sudoku' } ! []
 
         SetSquare colIndex rowIndex str ->
             let
@@ -119,6 +130,98 @@ update msg ({ sudoku } as model) =
 
 
 -- Sudoku Utils
+
+
+solve : Sudoku -> Sudoku
+solve =
+    prune
+
+
+prune : Sudoku -> Sudoku
+prune sudoku =
+    let
+        possMap =
+            emptyCellPossibilities sudoku
+    in
+        if (hasPrunable possMap) then
+            fillInSingles sudoku possMap
+                |> prune
+        else
+            sudoku
+
+
+fillInSingles : Sudoku -> List PossibilitiesMap -> Sudoku
+fillInSingles sudoku possMap =
+    case possMap of
+        [] ->
+            sudoku
+
+        x :: xs ->
+            case x.possibilities of
+                int :: [] ->
+                    sudokuSet x.colIndex x.rowIndex (GoodGuess int) sudoku
+                        |> flip fillInSingles xs
+
+                _ ->
+                    fillInSingles sudoku xs
+
+
+emptyCellPossibilities : Sudoku -> List PossibilitiesMap
+emptyCellPossibilities sudoku =
+    let
+        toPossibles y x cell =
+            case cell of
+                Empty ->
+                    Just
+                        { rowIndex = RowIndex x
+                        , colIndex = ColIndex y
+                        , possibilities = getPossible (ColIndex y) (RowIndex x) sudoku
+                        }
+
+                -- if there's already something in the list, no need to work out possibilities
+                _ ->
+                    Nothing
+    in
+        Matrix.indexedMap toPossibles sudoku
+            |> .data
+            |> Array.toList
+            |> catMaybe
+            |> sortCellPossibilities
+
+
+sortCellPossibilities : List PossibilitiesMap -> List PossibilitiesMap
+sortCellPossibilities =
+    List.sortBy (List.length << .possibilities)
+
+
+catMaybe : List (Maybe a) -> List a
+catMaybe xs =
+    case xs of
+        [] ->
+            []
+
+        Nothing :: xs' ->
+            catMaybe xs'
+
+        (Just x) :: xs' ->
+            x :: catMaybe xs'
+
+
+hasPrunable : List PossibilitiesMap -> Bool
+hasPrunable possMap =
+    case possMap of
+        [] ->
+            False
+
+        x :: xs ->
+            x.possibilities
+                |> List.length
+                |> (==) 1
+
+
+getPossible : ColIndex -> RowIndex -> Sudoku -> List Int
+getPossible colIndex rowIndex sudoku =
+    List.filter (isPossible colIndex rowIndex sudoku) [1..9]
 
 
 guess : ColIndex -> RowIndex -> String -> Sudoku -> Sudoku
