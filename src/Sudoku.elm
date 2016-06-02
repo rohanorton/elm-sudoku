@@ -134,7 +134,7 @@ update msg ({ sudoku } as model) =
 
 solve : Sudoku -> Sudoku
 solve =
-    prune
+    uncurry backtrack << possMapSudoku << prune
 
 
 prune : Sudoku -> Sudoku
@@ -148,6 +148,82 @@ prune sudoku =
                 |> prune
         else
             sudoku
+
+
+isComplete : Sudoku -> Bool
+isComplete =
+    List.all isFull << Array.toList << .data
+
+
+isFull : Cell -> Bool
+isFull x =
+    not (x == Empty)
+
+
+valid : Sudoku -> Bool
+valid sudoku =
+    isComplete sudoku
+        && foo (blocks sudoku)
+        && foo (rows sudoku)
+        && foo (cols sudoku)
+
+
+foo : List (List Cell) -> Bool
+foo =
+    List.all noDuplicates << List.map cellInts
+
+
+cellInts : List Cell -> List Int
+cellInts list =
+    case list of
+        [] ->
+            []
+
+        Empty :: xs ->
+            cellInts xs
+
+        (GoodGuess x) :: xs ->
+            x :: cellInts xs
+
+        (BadGuess x) :: xs ->
+            x :: cellInts xs
+
+        (Defined x) :: xs ->
+            x :: cellInts xs
+
+
+backtrack : List PossibilitiesMap -> Sudoku -> Sudoku
+backtrack possMaps sudoku =
+    case possMaps of
+        [] ->
+            sudoku
+
+        possMap :: possMaps' ->
+            let
+                attempt colIndex rowIndex possibilities =
+                    case possibilities of
+                        [] ->
+                            sudoku
+
+                        possible :: possibilities' ->
+                            let
+                                sudoku' =
+                                    sudokuSet colIndex rowIndex (GoodGuess possible) sudoku
+
+                                result =
+                                    solve sudoku'
+                            in
+                                if (valid result) then
+                                    result
+                                else
+                                    attempt colIndex rowIndex possibilities'
+            in
+                attempt possMap.colIndex possMap.rowIndex possMap.possibilities
+
+
+possMapSudoku : Sudoku -> ( List PossibilitiesMap, Sudoku )
+possMapSudoku sudoku =
+    ( emptyCellPossibilities sudoku, sudoku )
 
 
 fillInSingles : Sudoku -> List PossibilitiesMap -> Sudoku
