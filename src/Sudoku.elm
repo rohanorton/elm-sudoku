@@ -143,7 +143,7 @@ prune sudoku =
         possMap =
             emptyCellPossibilities sudoku
     in
-        if (hasPrunable possMap) then
+        if hasPrunable possMap then
             fillInSingles sudoku possMap
                 |> prune
         else
@@ -163,13 +163,16 @@ isFull x =
 valid : Sudoku -> Bool
 valid sudoku =
     isComplete sudoku
-        && foo (blocks sudoku)
-        && foo (rows sudoku)
-        && foo (cols sudoku)
+        && isValid (permutations sudoku)
 
 
-foo : List (List Cell) -> Bool
-foo =
+permutations : Sudoku -> List (List Cell)
+permutations sudoku =
+    (blocks sudoku) ++ (rows sudoku) ++ (cols sudoku)
+
+
+isValid : List (List Cell) -> Bool
+isValid =
     List.all noDuplicates << List.map cellInts
 
 
@@ -267,7 +270,12 @@ emptyCellPossibilities sudoku =
 
 sortCellPossibilities : List PossibilitiesMap -> List PossibilitiesMap
 sortCellPossibilities =
-    List.sortBy (List.length << .possibilities)
+    List.sortBy numberOfPossibilities
+
+
+numberOfPossibilities : PossibilitiesMap -> Int
+numberOfPossibilities =
+    List.length << .possibilities
 
 
 catMaybe : List (Maybe a) -> List a
@@ -520,7 +528,7 @@ cellView y x cell =
                 , maxlength 1
                 , value <| cellContentString cell
                 , readonly <| isReadOnly cell
-                , on "input" (Json.map (SetSquare colIndex rowIndex) targetValue)
+                , on "input" <| Json.map (SetSquare colIndex rowIndex) targetValue
                 ]
                 []
             ]
